@@ -677,7 +677,7 @@ TABS.map_generator.initialize = function (callback) {
 
         // ── Restore settings (only if user explicitly saved) ────────
         const settingsSaved = store.get('mapgen_settings_saved', false);
-        const savedTarget    = settingsSaved ? store.get('mapgen_target', 'b14ckyy') : 'b14ckyy';
+        const savedTarget    = settingsSaved ? store.get('mapgen_target', 'terrain') : 'terrain';
         const savedSubtarget = settingsSaved ? store.get('mapgen_subtarget', 'ethos') : 'ethos';
         const savedProvider    = settingsSaved ? store.get('mapgen_provider', 'OSM') : 'OSM';
         const savedMaptilerKey = store.get('mapgen_maptiler_key', '');
@@ -750,7 +750,7 @@ TABS.map_generator.initialize = function (callback) {
             const osmSelected = provider === 'OSM';
             $('#mapgen_osm_warning').toggle(osmSelected);
             $('#mapgen_maptiler_key_row').toggle(provider === 'MAPTILER');
-            const exportBlocked = osmSelected || (provider === 'MAPTILER' && !$('#mapgen_maptiler_key').val().trim());
+            const exportBlocked = (target !== 'terrain') && (osmSelected || (provider === 'MAPTILER' && !$('#mapgen_maptiler_key').val().trim()));
             $('#mapgen_sync_btn a, #mapgen_zip_btn a').toggleClass('disabled', exportBlocked);
 
             // Show/hide Yaapu sub-target selector
@@ -1278,7 +1278,7 @@ TABS.map_generator.initialize = function (callback) {
             store.delete('mapgen_last_zoom');
             // Note: mapgen_maptiler_key is intentionally NOT deleted on restore defaults
             // Reset UI to defaults
-            $('#mapgen_target').val('b14ckyy');
+            $('#mapgen_target').val('terrain');
             $('#mapgen_subtarget').val('ethos');
             $('#mapgen_provider').val('OSM');
             $('#mapgen_project_name').val('MyLocalField');
@@ -1675,6 +1675,13 @@ TABS.map_generator.initialize = function (callback) {
         setTimeout(() => {
             if (map) map.invalidateSize();
         }, 200);
+
+        // Apply the initial target mode now that the map, base layers and draw group
+        // exist. The cold-start syncMapOptions() above ran before map init, so its
+        // updateTerrainMode() call bailed on the `if (!map) return` guard. Without this,
+        // defaulting to (or restoring) the terrain target leaves the tab in tile-mode UI.
+        // No-op for tile targets.
+        updateTerrainMode();
 
         // ── Terrain helper functions ────────────────────────────────
         function isTerrainMode() {
